@@ -1,0 +1,97 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  PASANTE
+}
+
+enum AttendanceStatus {
+  PRESENTE
+  AUSENTE
+  TARDANZA
+  PERMISO
+}
+
+model User {
+  id                 String   @id @default(uuid())
+  email              String   @unique
+  password           String
+  name               String
+  role               Role     @default(PASANTE)
+  mustChangePassword Boolean  @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  pasante   Pasante?
+  adminLogs AdminLog[]
+}
+
+model Place {
+  id        String   @id @default(uuid())
+  name      String
+  lat       Float
+  lng       Float
+  radio     Float    @default(500)
+  activo    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pasantes Pasante[]
+}
+
+model Pasante {
+  id           String   @id @default(uuid())
+  userId       String   @unique
+  cedula       String   @unique
+  telefono     String?
+  institucion  String?
+  carrera      String?
+  lugarId      String?
+  horaEntrada  String   @default("08:00")
+  horaSalida   String   @default("16:00")
+  fechaInicio  DateTime
+  fechaFin     DateTime
+  activo       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lugar       Place?       @relation(fields: [lugarId], references: [id], onDelete: SetNull)
+  attendances Attendance[]
+}
+
+model Attendance {
+  id          String           @id @default(uuid())
+  pasanteId   String
+  fecha       DateTime         @db.Date
+  horaEntrada DateTime?
+  horaSalida  DateTime?
+  latitud     Float?
+  longitud    Float?
+  status      AttendanceStatus @default(PRESENTE)
+  notas       String?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  pasante Pasante @relation(fields: [pasanteId], references: [id], onDelete: Cascade)
+
+  @@unique([pasanteId, fecha])
+  @@index([pasanteId])
+  @@index([fecha])
+}
+
+model AdminLog {
+  id        String   @id @default(uuid())
+  adminId   String
+  accion    String
+  detalles  String?
+  createdAt DateTime @default(now())
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+}
