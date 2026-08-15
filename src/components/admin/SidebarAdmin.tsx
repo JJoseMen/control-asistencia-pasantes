@@ -13,6 +13,7 @@ import {
   Menu,
   X,
   ShieldCheck,
+  KeyRound,
 } from 'lucide-react'
 import { logoutAction } from '@/lib/actions/auth'
 import { cn } from '@/lib/utils'
@@ -24,6 +25,7 @@ const links = [
   { href: '/admin/calendario', label: 'Calendario', icon: CalendarDays },
   { href: '/admin/registros', label: 'Registros', icon: ClipboardList },
   { href: '/admin/reportes', label: 'Reportes', icon: FileBarChart },
+  { href: '/admin/cambiar-contrasena', label: 'Cambiar contraseña', icon: KeyRound },
 ]
 
 export default function SidebarAdmin({ userName }: { userName: string }) {
