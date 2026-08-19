@@ -3,7 +3,7 @@
 import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth'
 import { isWithinOfficeRadius } from '@/lib/location'
-import { isLate } from '@/lib/hours'
+import { getAttendanceStatus } from '@/lib/hours'
 import { getPasantePlaceCoords } from '@/lib/places'
 
 export interface AttendanceActionResult {
@@ -52,7 +52,7 @@ export async function checkInAction(lat: number, lng: number): Promise<Attendanc
         horaEntrada: now,
         latitud: lat,
         longitud: lng,
-        status: isLate(now, pasante.horaEntrada) ? 'TARDANZA' : 'PRESENTE',
+        status: getAttendanceStatus(now, pasante.horaEntrada),
       },
     })
 

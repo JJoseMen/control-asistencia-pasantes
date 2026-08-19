@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getSessionFromRequest } from '@/lib/auth'
 import { isWithinOfficeRadius } from '@/lib/location'
-import { isLate } from '@/lib/hours'
+import { getAttendanceStatus } from '@/lib/hours'
 import { getPasantePlaceCoords } from '@/lib/places'
 
 export async function POST(request: NextRequest) {
@@ -53,7 +53,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Opción "No pude asistir hoy" — no requiere geolocalización.
     if (tipoMarcado === 'AUSENTE') {
       if (!notas || notas.length < 10) {
         return NextResponse.json(
@@ -84,7 +83,6 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Opción "Llegué tarde" — tardanza manual con razón obligatoria.
     if (tipoMarcado === 'TARDANZA') {
       if (!notas || notas.length < 10) {
         return NextResponse.json(
@@ -106,8 +104,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ attendance }, { status: 201 })
     }
 
-    // Opción "Estoy en la oficina" — marca según horario (nota opcional).
-    const late = isLate(now, pasante.horaEntrada)
+    const status = getAttendanceStatus(now, pasante.horaEntrada)
 
     const attendance = await prisma.attendance.create({
       data: {
@@ -116,7 +113,7 @@ export async function POST(request: NextRequest) {
         horaEntrada: now,
         latitud: lat,
         longitud: lng,
-        status: late ? 'TARDANZA' : 'PRESENTE',
+        status,
         ...(notas ? { notas } : {}),
       },
     })

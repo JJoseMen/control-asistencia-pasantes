@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { Download, RefreshCw } from 'lucide-react'
+import { Download, RefreshCw, Pencil, Loader2 } from 'lucide-react'
 import { Badge } from '@/components/ui/Badge'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
+import { Modal } from '@/components/ui/Modal'
 import { Select } from '@/components/ui/Select'
+import { Textarea } from '@/components/ui/Textarea'
 
 interface PasanteOption {
   id: string
@@ -54,6 +56,13 @@ export default function RegistrosPage() {
   const [totalPages, setTotalPages] = useState(1)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editRecord, setEditRecord] = useState<AttendanceRow | null>(null)
+  const [editStatus, setEditStatus] = useState<AttendanceRow['status']>('PRESENTE')
+  const [editNotas, setEditNotas] = useState('')
+  const [editSaving, setEditSaving] = useState(false)
+  const [editError, setEditError] = useState('')
 
   const [filters, setFilters] = useState({
     pasanteId: '',
@@ -133,6 +142,38 @@ export default function RegistrosPage() {
   function updateFilter<K extends keyof typeof filters>(key: K, value: string) {
     setFilters((f) => ({ ...f, [key]: value }))
     setPage(1)
+  }
+
+  function openEdit(row: AttendanceRow) {
+    setEditRecord(row)
+    setEditStatus(row.status)
+    setEditNotas(row.notas ?? '')
+    setEditError('')
+    setEditModalOpen(true)
+  }
+
+  async function saveEdit() {
+    if (!editRecord || editSaving) return
+    setEditSaving(true)
+    setEditError('')
+    try {
+      const res = await fetch(`/api/attendance/${editRecord.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: editStatus, notas: editNotas }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setEditError(data.error || 'Error al guardar')
+        return
+      }
+      setEditModalOpen(false)
+      load()
+    } catch {
+      setEditError('Error de conexión con el servidor')
+    } finally {
+      setEditSaving(false)
+    }
   }
 
   return (
@@ -223,6 +264,7 @@ export default function RegistrosPage() {
                   <th className="px-4 py-3 font-medium">Salida</th>
                   <th className="px-4 py-3 font-medium">Estado</th>
                   <th className="px-4 py-3 font-medium">Justificación / Notas</th>
+                  <th className="px-4 py-3 font-medium">Acciones</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 bg-white">
@@ -251,6 +293,15 @@ export default function RegistrosPage() {
                         '—'
                       )}
                     </td>
+                    <td className="px-4 py-3">
+                      <button
+                        onClick={() => openEdit(r)}
+                        className="rounded p-1.5 text-slate-400 transition hover:bg-slate-100 hover:text-indigo-600"
+                        title="Editar registro"
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -274,6 +325,71 @@ export default function RegistrosPage() {
           </div>
         </div>
       )}
+
+      <Modal
+        open={editModalOpen}
+        onClose={() => setEditModalOpen(false)}
+        title="Editar registro de asistencia"
+        size="md"
+      >
+        {editRecord && (
+          <div className="space-y-4">
+            <p className="text-sm text-slate-500">
+              {editRecord.nombre} — {format(new Date(editRecord.fecha), 'dd/MM/yyyy')}
+            </p>
+
+            <Select
+              label="Estado"
+              value={editStatus}
+              onChange={(e) => setEditStatus(e.target.value as AttendanceRow['status'])}
+            >
+              <option value="PRESENTE">Presente</option>
+              <option value="TARDANZA">Tardanza</option>
+              <option value="AUSENTE">Ausente</option>
+              <option value="PERMISO">Permiso</option>
+            </Select>
+
+            <Textarea
+              label="Justificación / Notas"
+              rows={3}
+              value={editNotas}
+              onChange={(e) => setEditNotas(e.target.value)}
+              placeholder="Observaciones del registro..."
+            />
+
+            {editError && (
+              <div className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700">
+                {editError}
+              </div>
+            )}
+
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => setEditModalOpen(false)}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={saveEdit}
+                disabled={editSaving}
+                className="flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {editSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  'Guardar cambios'
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }

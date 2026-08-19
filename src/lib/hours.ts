@@ -1,4 +1,4 @@
-import { format, parse, isAfter, isBefore } from 'date-fns'
+import { format, parse, isAfter, isBefore, differenceInMinutes } from 'date-fns'
 
 const TIME_REGEX = /^([01]\d|2[0-3]):([0-5]\d)$/
 
@@ -24,6 +24,18 @@ export function isLate(checkInTime: Date, workStart?: string): boolean {
 
 export function isEarlyDeparture(checkOutTime: Date, workEnd?: string): boolean {
   return isBefore(checkOutTime, getWorkEndTime(workEnd))
+}
+
+const TOLERANCE_MINUTES = 15
+
+export function getAttendanceStatus(
+  horaActual: Date,
+  horaEntradaProgramada: string,
+  toleranceMinutes: number = TOLERANCE_MINUTES
+): 'PRESENTE' | 'TARDANZA' {
+  const programada = toDate(horaEntradaProgramada)
+  const diff = differenceInMinutes(horaActual, programada)
+  return diff <= toleranceMinutes ? 'PRESENTE' : 'TARDANZA'
 }
 
 export function formatTime(date: Date): string {
