@@ -44,8 +44,8 @@ ALTER TABLE "Place" ALTER COLUMN "lat" TYPE DOUBLE PRECISION USING "lat"::double
 ALTER TABLE "Place" ALTER COLUMN "lng" TYPE DOUBLE PRECISION USING "lng"::double precision;
 ALTER TABLE "Place" ALTER COLUMN "createdAt" TYPE TIMESTAMP(3) WITH TIME ZONE USING "createdAt"::timestamptz;
 ALTER TABLE "Place" ALTER COLUMN "updatedAt" TYPE TIMESTAMP(3) WITH TIME ZONE USING "updatedAt"::timestamptz;
-ALTER TABLE "Place" DROP COLUMN "radio";
-ALTER TABLE "Place" DROP COLUMN "activo";
+ALTER TABLE "Place" DROP COLUMN IF EXISTS "radio";
+ALTER TABLE "Place" DROP COLUMN IF EXISTS "activo";
 
 -- Alter Pasante: add new columns, change fechaFin nullable, drop horaEntrada/horaSalida/lugarId, add placeId
 ALTER TABLE "Pasante" ADD COLUMN "horario" JSON;
@@ -56,10 +56,10 @@ ALTER TABLE "Pasante" ALTER COLUMN "fechaInicio" TYPE TIMESTAMP(3) WITH TIME ZON
 ALTER TABLE "Pasante" ALTER COLUMN "fechaFin" TYPE TIMESTAMP(3) WITH TIME ZONE USING "fechaFin"::timestamptz;
 ALTER TABLE "Pasante" ALTER COLUMN "createdAt" TYPE TIMESTAMP(3) WITH TIME ZONE USING "createdAt"::timestamptz;
 ALTER TABLE "Pasante" ALTER COLUMN "updatedAt" TYPE TIMESTAMP(3) WITH TIME ZONE USING "updatedAt"::timestamptz;
-ALTER TABLE "Pasante" DROP COLUMN "horaEntrada";
-ALTER TABLE "Pasante" DROP COLUMN "horaSalida";
-ALTER TABLE "Pasante" DROP COLUMN "lugarId";
-ALTER TABLE "Pasante" DROP CONSTRAINT "Pasante_lugarId_fkey";
+ALTER TABLE "Pasante" DROP COLUMN IF EXISTS "horaEntrada";
+ALTER TABLE "Pasante" DROP COLUMN IF EXISTS "horaSalida";
+ALTER TABLE "Pasante" DROP COLUMN IF EXISTS "lugarId";
+ALTER TABLE "Pasante" DROP CONSTRAINT IF EXISTS "Pasante_lugarId_fkey";
 ALTER TABLE "Pasante" ADD CONSTRAINT "Pasante_placeId_fkey" FOREIGN KEY ("placeId") REFERENCES "Place"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- CreateIndex on Pasante
@@ -72,25 +72,25 @@ ALTER TABLE "Attendance" ADD COLUMN "deviceId" TEXT;
 ALTER TABLE "Attendance" ADD COLUMN "createdBy" TEXT;
 ALTER TABLE "Attendance" ADD COLUMN "nota" TEXT;
 UPDATE "Attendance" SET "nota" = "notas";
-ALTER TABLE "Attendance" DROP COLUMN "notas";
+ALTER TABLE "Attendance" DROP COLUMN IF EXISTS "notas";
 ALTER TABLE "Attendance" ALTER COLUMN "horaEntrada" TYPE TIMESTAMP(3) WITH TIME ZONE USING "horaEntrada"::timestamptz;
 ALTER TABLE "Attendance" ALTER COLUMN "horaSalida" TYPE TIMESTAMP(3) WITH TIME ZONE USING "horaSalida"::timestamptz;
 ALTER TABLE "Attendance" ALTER COLUMN "createdAt" TYPE TIMESTAMP(3) WITH TIME ZONE USING "createdAt"::timestamptz;
 ALTER TABLE "Attendance" ALTER COLUMN "updatedAt" TYPE TIMESTAMP(3) WITH TIME ZONE USING "updatedAt"::timestamptz;
-ALTER TABLE "Attendance" DROP CONSTRAINT "Attendance_pasanteId_fkey";
+ALTER TABLE "Attendance" DROP CONSTRAINT IF EXISTS "Attendance_pasanteId_fkey";
 ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_pasanteId_fkey" FOREIGN KEY ("pasanteId") REFERENCES "Pasante"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 ALTER TABLE "Attendance" ADD CONSTRAINT "Attendance_deviceId_fkey" FOREIGN KEY ("deviceId") REFERENCES "Device"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- Drop old indexes and create new ones on Attendance
-DROP INDEX "Attendance_pasanteId_idx";
-DROP INDEX "Attendance_fecha_idx";
-DROP INDEX "Attendance_pasanteId_fecha_key";
+DROP INDEX IF EXISTS "Attendance_pasanteId_idx";
+DROP INDEX IF EXISTS "Attendance_fecha_idx";
+DROP INDEX IF EXISTS "Attendance_pasanteId_fecha_key";
 CREATE UNIQUE INDEX "Attendance_pasanteId_fecha_key" ON "Attendance"("pasanteId", "fecha");
 CREATE INDEX "Attendance_pasanteId_fecha_idx" ON "Attendance"("pasanteId", "fecha");
 CREATE INDEX "Attendance_fecha_status_idx" ON "Attendance"("fecha", "status");
 
 -- Redefine AdminLog: drop old and create new
-DROP TABLE "AdminLog";
+DROP TABLE IF EXISTS "AdminLog";
 CREATE TABLE "AdminLog" (
     "id" TEXT NOT NULL,
     "actorId" TEXT,
