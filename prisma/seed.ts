@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import { randomBytes } from 'crypto'
 import { PrismaClient, Role } from '@prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 import bcrypt from 'bcryptjs'
@@ -9,20 +10,27 @@ const adapter = new PrismaPg({
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  const adminPassword = await bcrypt.hash('admin123', 10)
-
-  await prisma.user.upsert({
+  const existingAdmin = await prisma.user.findUnique({
     where: { email: 'admin@empresa.com' },
-    update: {},
-    create: {
-      email: 'admin@empresa.com',
-      password: adminPassword,
-      name: 'Administrador',
-      role: Role.ADMIN,
-    },
   })
 
-  const defaultLugar = await prisma.place.upsert({
+  let initialPassword: string | null = null
+
+  if (!existingAdmin) {
+    initialPassword = randomBytes(12).toString('base64url')
+    const hashed = await bcrypt.hash(initialPassword, 10)
+
+    await prisma.user.create({
+      data: {
+        email: 'admin@empresa.com',
+        password: hashed,
+        name: 'Administrador',
+        role: Role.ADMIN,
+      },
+    })
+  }
+
+  await prisma.place.upsert({
     where: { id: 'lugar-oficina-principal' },
     update: {},
     create: {
@@ -36,8 +44,17 @@ async function main() {
 
   console.log('✅ Seed completado: Usuario admin y lugar por defecto creados.')
   console.log('   Email: admin@empresa.com')
-  console.log('   Password: admin123')
-  console.log(`   Lugar: ${defaultLugar.name} (${defaultLugar.lat}, ${defaultLugar.lng})`)
+  if (initialPassword) {
+    console.log('═════════════════════════════════════════════════════')
+    console.log('  ADMIN CREADO — GUARDA ESTA CONTRASEÑA')
+    console.log('  Email:    admin@empresa.com')
+    console.log(`  Password: ${initialPassword}`)
+    console.log('  NO SE VOLVERÁ A MOSTRAR. Cámbiala tras el primer login.')
+    console.log('═════════════════════════════════════════════════════')
+  } else {
+    console.log('   Admin ya existía. Contraseña no regenerada.')
+  }
+  console.log(`   Lugar: Oficina Principal (19.4326, -99.1332)`)
 }
 
 main()

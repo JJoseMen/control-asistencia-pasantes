@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { randomBytes } from 'crypto'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { getSessionFromRequest } from '@/lib/auth'
@@ -51,12 +52,8 @@ export async function GET(request: NextRequest) {
       name: p.user.name,
       email: p.user.email,
       cedula: p.cedula,
-      telefono: p.telefono,
       institucion: p.institucion,
       carrera: p.carrera,
-      lugarId: p.lugarId,
-      horaEntrada: p.horaEntrada,
-      horaSalida: p.horaSalida,
       fechaInicio: p.fechaInicio,
       fechaFin: p.fechaFin,
       activo: p.activo,
@@ -89,18 +86,8 @@ export async function POST(request: NextRequest) {
     const name = typeof body.name === 'string' ? body.name.trim() : ''
     const email = typeof body.email === 'string' ? body.email.trim().toLowerCase() : ''
     const cedula = typeof body.cedula === 'string' ? body.cedula.trim() : ''
-    const telefono = typeof body.telefono === 'string' ? body.telefono.trim() : null
     const institucion = typeof body.institucion === 'string' ? body.institucion.trim() : null
     const carrera = typeof body.carrera === 'string' ? body.carrera.trim() : null
-    const lugarId = typeof body.lugarId === 'string' && body.lugarId ? body.lugarId : null
-    const horaEntrada =
-      typeof body.horaEntrada === 'string' && body.horaEntrada.trim()
-        ? body.horaEntrada.trim()
-        : process.env.WORK_START_TIME || '08:00'
-    const horaSalida =
-      typeof body.horaSalida === 'string' && body.horaSalida.trim()
-        ? body.horaSalida.trim()
-        : process.env.WORK_END_TIME || '16:00'
     const fechaInicio = body.fechaInicio ? new Date(body.fechaInicio) : null
     const fechaFin = body.fechaFin ? new Date(body.fechaFin) : null
 
@@ -113,19 +100,6 @@ export async function POST(request: NextRequest) {
     if (fechaFin <= fechaInicio) {
       return NextResponse.json({ error: 'La fecha fin debe ser posterior a la fecha inicio' }, { status: 400 })
     }
-    if (!isValidTime(horaEntrada) || !isValidTime(horaSalida)) {
-      return NextResponse.json(
-        { error: 'Las horas de entrada y salida deben tener formato HH:mm' },
-        { status: 400 }
-      )
-    }
-    if (horaSalida <= horaEntrada) {
-      return NextResponse.json(
-        { error: 'La hora de salida debe ser posterior a la hora de entrada' },
-        { status: 400 }
-      )
-    }
-
     const existingUser = await prisma.user.findUnique({ where: { email } })
     if (existingUser) {
       return NextResponse.json({ error: 'El email ya está registrado' }, { status: 409 })
@@ -135,8 +109,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'La cédula ya está registrada' }, { status: 409 })
     }
 
-    const temporaryPassword = 'pasante123'
-    const passwordHash = await bcrypt.hash(temporaryPassword, 10)
+    const initialPassword = randomBytes(12).toString('base64url')
+    const passwordHash = await bcrypt.hash(initialPassword, 10)
 
     const pasante = await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
@@ -152,12 +126,8 @@ export async function POST(request: NextRequest) {
         data: {
           userId: user.id,
           cedula,
-          telefono,
           institucion,
           carrera,
-          lugarId,
-          horaEntrada,
-          horaSalida,
           fechaInicio,
           fechaFin,
         },
@@ -173,16 +143,13 @@ export async function POST(request: NextRequest) {
           name: pasante.user.name,
           email: pasante.user.email,
           cedula: pasante.cedula,
-          telefono: pasante.telefono,
           institucion: pasante.institucion,
           carrera: pasante.carrera,
-          horaEntrada: pasante.horaEntrada,
-          horaSalida: pasante.horaSalida,
           fechaInicio: pasante.fechaInicio,
           fechaFin: pasante.fechaFin,
           activo: pasante.activo,
         },
-        temporaryPassword,
+        initialPassword,
       },
       { status: 201 }
     )

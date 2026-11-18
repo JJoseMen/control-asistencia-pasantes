@@ -3,7 +3,16 @@ import type { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
 import type { Role, UserSession } from '@/types'
 
-const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret-cambiar'
+const PLACEHOLDER = 'CAMBIAR_EN_PROD_MIN_32_CHARS'
+const rawSecret = process.env.JWT_SECRET
+if (!rawSecret || rawSecret.length < 32 || rawSecret === PLACEHOLDER) {
+  throw new Error(
+    'JWT_SECRET inválido: debe existir, tener al menos 32 caracteres ' +
+    'y no ser el placeholder. Configúralo en .env.local (dev) o en ' +
+    'las variables de entorno del deploy (prod).'
+  )
+}
+const JWT_SECRET: string = rawSecret
 const TOKEN_COOKIE = 'token'
 
 export interface TokenPayload {
