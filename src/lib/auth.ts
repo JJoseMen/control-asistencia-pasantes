@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken'
 import type { NextRequest } from 'next/server'
 import { cookies } from 'next/headers'
+import { prisma } from '@/lib/prisma'
 import type { Role, UserSession } from '@/types'
 
 const PLACEHOLDER = 'CAMBIAR_EN_PROD_MIN_32_CHARS'
@@ -19,15 +20,52 @@ export interface TokenPayload {
   sub: string
   email: string
   role: Role
+  tokenVersion: number
 }
 
-export function signToken(user: { id: string; email: string; role: Role }): string {
+export function signToken(user: {
+  id: string
+  email: string
+  role: Role
+  tokenVersion: number
+}): string {
   const payload: TokenPayload = {
     sub: user.id,
     email: user.email,
     role: user.role,
+    tokenVersion: user.tokenVersion,
   }
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' })
+}
+
+export async function verifyTokenAndSession(
+  token: string
+): Promise<TokenPayload | null> {
+  try {
+    const payload = jwt.verify(token, JWT_SECRET) as TokenPayload
+    if (!payload || typeof payload.tokenVersion !== 'number') {
+      return null
+    }
+
+    // Validar contra BD: activo, no borrado lógico, tokenVersion coincide
+    const user = await prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: { id: true, email: true, name: true, role: true, tokenVersion: true, active: true, deletedAt: true },
+    })
+    if (!user) return null
+    if (!user.active) return null
+    if (user.deletedAt !== null) return null
+    if (user.tokenVersion !== payload.tokenVersion) return null
+
+    return {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+      tokenVersion: user.tokenVersion,
+    }
+  } catch {
+    return null
+  }
 }
 
 export function verifyToken(token: string): TokenPayload | null {
@@ -44,10 +82,10 @@ export function getTokenFromRequest(request: NextRequest): string | null {
   return request.cookies.get(TOKEN_COOKIE)?.value ?? null
 }
 
-export function getSessionFromRequest(request: NextRequest): TokenPayload | null {
+export async function getSessionFromRequest(request: NextRequest): Promise<TokenPayload | null> {
   const token = getTokenFromRequest(request)
   if (!token) return null
-  return verifyToken(token)
+  return verifyTokenAndSession(token)
 }
 
 export async function setAuthCookie(token: string): Promise<void> {
@@ -70,7 +108,7 @@ export async function getSession(): Promise<TokenPayload | null> {
   const store = await cookies()
   const token = store.get(TOKEN_COOKIE)?.value
   if (!token) return null
-  return verifyToken(token)
+  return verifyTokenAndSession(token)
 }
 
 export function toUserSession(payload: TokenPayload, name: string): UserSession {

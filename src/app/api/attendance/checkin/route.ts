@@ -8,7 +8,7 @@ import { getPasantePlaceCoords } from '@/lib/places'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ attendance }, { status: 201 })
     }
 
-    const status = getAttendanceStatus(now, pasante.horaEntrada)
+    const status = getAttendanceStatus(now, process.env.WORK_START_TIME || '08:00')
 
     const attendance = await prisma.attendance.create({
       data: {

@@ -9,9 +9,9 @@ function redirectTo(request: NextRequest, path: string): NextResponse {
   return NextResponse.redirect(url)
 }
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
-  const session = getSessionFromRequest(request)
+  const session = await getSessionFromRequest(request)
   const isLoggedIn = Boolean(session)
 
   const isLoginPage = pathname === '/login'

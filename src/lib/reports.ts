@@ -64,7 +64,6 @@ export async function fetchReportData(filters: ReportFilters) {
     nombre: a.pasante.user.name,
     email: a.pasante.user.email,
     cedula: a.pasante.cedula,
-    telefono: a.pasante.telefono,
     institucion: a.pasante.institucion,
     carrera: a.pasante.carrera,
     fecha: a.fecha,
@@ -85,6 +84,6 @@ export const STATUS_LABELS: Record<string, string> = {
 }
 
 export function isAdminRequest(request: NextRequest): boolean {
-  const session = getSessionFromRequest(request)
+  const session = await getSessionFromRequest(request)
   return session?.role === 'ADMIN'
 }

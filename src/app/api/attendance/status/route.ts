@@ -6,7 +6,7 @@ import { getPasantePlaceCoords } from '@/lib/places'
 
 export async function GET(request: NextRequest) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -41,8 +41,8 @@ export async function GET(request: NextRequest) {
         maxDistanceMeters: place.radio,
       },
       horario: {
-        entrada: pasante.horaEntrada,
-        salida: pasante.horaSalida,
+        entrada: process.env.WORK_START_TIME || '08:00',
+        salida: process.env.WORK_END_TIME || '17:00',
       },
     })
   } catch (error) {

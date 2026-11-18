@@ -9,7 +9,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 export async function POST(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }

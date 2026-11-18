@@ -52,7 +52,7 @@ export async function checkInAction(lat: number, lng: number): Promise<Attendanc
         horaEntrada: now,
         latitud: lat,
         longitud: lng,
-        status: getAttendanceStatus(now, pasante.horaEntrada),
+        status: getAttendanceStatus(now, process.env.WORK_START_TIME || '08:00'),
       },
     })
 

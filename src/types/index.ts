@@ -7,10 +7,6 @@ export interface Pasante {
   cedula: string
   institucion?: string
   carrera?: string
-  telefono?: string
-  lugarId?: string
-  horaEntrada: string
-  horaSalida: string
   fechaInicio: Date
   fechaFin: Date
   activo: boolean

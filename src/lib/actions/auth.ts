@@ -30,7 +30,12 @@ export async function loginAction(formData: FormData): Promise<LoginResult> {
     return { ok: false, error: 'Credenciales inválidas' }
   }
 
-  const token = signToken({ id: user.id, email: user.email, role: user.role })
+  const token = signToken({
+    id: user.id,
+    email: user.email,
+    role: user.role,
+    tokenVersion: user.tokenVersion,
+  })
   await setAuthCookie(token)
 
   return {

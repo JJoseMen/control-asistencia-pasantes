@@ -1,5 +1,9 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 
+vi.mock('@/lib/prisma', () => ({
+  prisma: { user: { findUnique: vi.fn() } },
+}))
+
 const ORIGINAL_SECRET = process.env.JWT_SECRET
 
 function setSecret(secret: string | undefined) {
@@ -22,13 +26,14 @@ afterEach(() => {
 describe('auth.ts', () => {
   it('signToken + verifyToken funcionan con JWT_SECRET válido', async () => {
     const { signToken, verifyToken } = await import('../auth')
-    const payload = { id: 'user-1', email: 'test@test.com', role: 'PASANTE' as const }
+    const payload = { id: 'user-1', email: 'test@test.com', role: 'PASANTE' as const, tokenVersion: 1 }
     const token = signToken(payload)
     const decoded = verifyToken(token)
     expect(decoded).not.toBeNull()
     expect(decoded?.sub).toBe('user-1')
     expect(decoded?.email).toBe('test@test.com')
     expect(decoded?.role).toBe('PASANTE')
+    expect(decoded?.tokenVersion).toBe(1)
   })
 
   it('verifyToken devuelve null con token corrupto', async () => {

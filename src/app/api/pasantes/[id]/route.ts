@@ -8,7 +8,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 export async function GET(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -32,12 +32,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
         name: pasante.user.name,
         email: pasante.user.email,
         cedula: pasante.cedula,
-        telefono: pasante.telefono,
         institucion: pasante.institucion,
         carrera: pasante.carrera,
-        lugarId: pasante.lugarId,
-        horaEntrada: pasante.horaEntrada,
-        horaSalida: pasante.horaSalida,
         fechaInicio: pasante.fechaInicio,
         fechaFin: pasante.fechaFin,
         activo: pasante.activo,
@@ -51,7 +47,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -71,42 +67,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
     const email =
       typeof body.email === 'string' ? body.email.trim().toLowerCase() : undefined
     const cedula = typeof body.cedula === 'string' ? body.cedula.trim() : undefined
-    const telefono =
-      typeof body.telefono === 'string' ? body.telefono.trim() : body.telefono === null ? null : undefined
     const institucion =
       typeof body.institucion === 'string' ? body.institucion.trim() : body.institucion === null ? null : undefined
     const carrera =
       typeof body.carrera === 'string' ? body.carrera.trim() : body.carrera === null ? null : undefined
-    const lugarId =
-      typeof body.lugarId === 'string' && body.lugarId ? body.lugarId : body.lugarId === null ? null : undefined
-    const horaEntrada =
-      typeof body.horaEntrada === 'string' && body.horaEntrada.trim()
-        ? body.horaEntrada.trim()
-        : undefined
-    const horaSalida =
-      typeof body.horaSalida === 'string' && body.horaSalida.trim()
-        ? body.horaSalida.trim()
-        : undefined
     const fechaInicio = body.fechaInicio ? new Date(body.fechaInicio) : undefined
     const fechaFin = body.fechaFin ? new Date(body.fechaFin) : undefined
 
     if (fechaInicio && fechaFin && fechaFin <= fechaInicio) {
       return NextResponse.json({ error: 'La fecha fin debe ser posterior a la fecha inicio' }, { status: 400 })
-    }
-
-    if (horaEntrada !== undefined && !isValidTime(horaEntrada)) {
-      return NextResponse.json({ error: 'La hora de entrada debe tener formato HH:mm' }, { status: 400 })
-    }
-    if (horaSalida !== undefined && !isValidTime(horaSalida)) {
-      return NextResponse.json({ error: 'La hora de salida debe tener formato HH:mm' }, { status: 400 })
-    }
-    const effectiveHoraEntrada = horaEntrada ?? existing.horaEntrada
-    const effectiveHoraSalida = horaSalida ?? existing.horaSalida
-    if (effectiveHoraSalida <= effectiveHoraEntrada) {
-      return NextResponse.json(
-        { error: 'La hora de salida debe ser posterior a la hora de entrada' },
-        { status: 400 }
-      )
     }
 
     if (email) {
@@ -141,12 +110,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         where: { id },
         data: {
           ...(cedula ? { cedula } : {}),
-          ...(telefono !== undefined ? { telefono } : {}),
           ...(institucion !== undefined ? { institucion } : {}),
           ...(carrera !== undefined ? { carrera } : {}),
-          ...(lugarId !== undefined ? { lugarId } : {}),
-          ...(horaEntrada !== undefined ? { horaEntrada } : {}),
-          ...(horaSalida !== undefined ? { horaSalida } : {}),
           ...(fechaInicio ? { fechaInicio } : {}),
           ...(fechaFin ? { fechaFin } : {}),
         },
@@ -161,12 +126,8 @@ export async function PUT(request: NextRequest, context: RouteContext) {
         name: pasante.user.name,
         email: pasante.user.email,
         cedula: pasante.cedula,
-        telefono: pasante.telefono,
         institucion: pasante.institucion,
         carrera: pasante.carrera,
-        lugarId: pasante.lugarId,
-        horaEntrada: pasante.horaEntrada,
-        horaSalida: pasante.horaSalida,
         fechaInicio: pasante.fechaInicio,
         fechaFin: pasante.fechaFin,
         activo: pasante.activo,
@@ -180,7 +141,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function PATCH(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -213,7 +174,7 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }

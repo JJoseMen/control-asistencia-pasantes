@@ -7,7 +7,7 @@ type RouteContext = { params: Promise<{ id: string }> }
 
 export async function PUT(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -67,7 +67,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
 export async function DELETE(request: NextRequest, context: RouteContext) {
   try {
-    const session = getSessionFromRequest(request)
+    const session = await getSessionFromRequest(request)
     if (!session) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
@@ -81,7 +81,7 @@ export async function DELETE(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Lugar no encontrado' }, { status: 404 })
     }
 
-    const pasantes = await prisma.pasante.count({ where: { lugarId: id } })
+    const pasantes = await prisma.pasante.count({ where: { placeId: id } })
     if (pasantes > 0) {
       return NextResponse.json(
         { error: `No se puede eliminar: ${pasantes} pasante(s) asignado(s) a este lugar` },
