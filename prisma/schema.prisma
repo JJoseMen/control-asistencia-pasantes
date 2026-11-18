@@ -16,82 +16,135 @@ enum AttendanceStatus {
   AUSENTE
   TARDANZA
   PERMISO
+  AJUSTE_ADMIN
+}
+
+enum AuditAction {
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  CHANGE_PASSWORD
+  CREATE_USER
+  UPDATE_USER
+  DEACTIVATE_USER
+  CREATE_PASANTE
+  UPDATE_PASANTE
+  DELETE_PASANTE
+  CREATE_PLACE
+  UPDATE_PLACE
+  DELETE_PLACE
+  CHECKIN
+  CHECKOUT
+  ADMIN_ADJUST_ATTENDANCE
+  EXPORT_REPORT
 }
 
 model User {
-  id                 String   @id @default(uuid())
-  email              String   @unique
+  id                 String    @id @default(uuid())
+  email              String    @unique
   password           String
   name               String
-  role               Role     @default(PASANTE)
-  mustChangePassword Boolean  @default(false)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  role               Role      @default(PASANTE)
+  mustChangePassword Boolean   @default(true)
+  tokenVersion       Int       @default(0)
+  active             Boolean   @default(true)
+  createdAt          DateTime  @default(now()) @db.Timestamptz
+  updatedAt          DateTime  @updatedAt @db.Timestamptz
+  deletedAt          DateTime? @db.Timestamptz
+  pasante            Pasante?
+  auditLogs          AdminLog[]
+  devices            Device[]
 
-  pasante   Pasante?
-  adminLogs AdminLog[]
+  @@index([email])
+  @@index([role, active])
 }
 
 model Place {
-  id        String   @id @default(uuid())
+  id        String    @id @default(uuid())
   name      String
   lat       Float
   lng       Float
-  radio     Float    @default(500)
-  activo    Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  pasantes Pasante[]
+  radius    Float
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now()) @db.Timestamptz
+  updatedAt DateTime  @updatedAt @db.Timestamptz
+  deletedAt DateTime? @db.Timestamptz
+  pasantes  Pasante[]
 }
 
 model Pasante {
-  id           String   @id @default(uuid())
-  userId       String   @unique
-  cedula       String   @unique
-  telefono     String?
-  institucion  String?
-  carrera      String?
-  lugarId      String?
-  horaEntrada  String   @default("08:00")
-  horaSalida   String   @default("16:00")
-  fechaInicio  DateTime
-  fechaFin     DateTime
-  activo       Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  cedula      String    @unique
+  institucion String?
+  carrera     String?
+  horario     Json?
+  placeId     String?
+  fechaInicio DateTime  @db.Timestamptz
+  fechaFin    DateTime? @db.Timestamptz
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now()) @db.Timestamptz
+  updatedAt   DateTime  @updatedAt @db.Timestamptz
+  deletedAt   DateTime? @db.Timestamptz
+  user        User      @relation(fields: [userId], references: [id])
+  place       Place?    @relation(fields: [placeId], references: [id])
+  attendance  Attendance[]
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lugar       Place?       @relation(fields: [lugarId], references: [id], onDelete: SetNull)
-  attendances Attendance[]
+  @@index([userId])
+  @@index([placeId])
+  @@index([activo])
 }
 
 model Attendance {
   id          String           @id @default(uuid())
   pasanteId   String
   fecha       DateTime         @db.Date
-  horaEntrada DateTime?
-  horaSalida  DateTime?
+  horaEntrada DateTime?        @db.Timestamptz
+  horaSalida  DateTime?        @db.Timestamptz
   latitud     Float?
   longitud    Float?
   status      AttendanceStatus @default(PRESENTE)
-  notas       String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-
-  pasante Pasante @relation(fields: [pasanteId], references: [id], onDelete: Cascade)
+  nota        String?
+  deviceId    String?
+  createdBy   String?
+  createdAt   DateTime         @default(now()) @db.Timestamptz
+  updatedAt   DateTime         @updatedAt @db.Timestamptz
+  pasante     Pasante          @relation(fields: [pasanteId], references: [id])
+  device      Device?          @relation(fields: [deviceId], references: [id])
 
   @@unique([pasanteId, fecha])
-  @@index([pasanteId])
-  @@index([fecha])
+  @@index([pasanteId, fecha])
+  @@index([fecha, status])
 }
 
 model AdminLog {
-  id        String   @id @default(uuid())
-  adminId   String
-  accion    String
-  detalles  String?
-  createdAt DateTime @default(now())
+  id         String      @id @default(uuid())
+  actorId    String?
+  actorRole  Role?
+  action     AuditAction
+  entityType String?
+  entityId   String?
+  before     Json?
+  after      Json?
+  metadata   Json?
+  createdAt  DateTime    @default(now()) @db.Timestamptz
+  actor      User?       @relation(fields: [actorId], references: [id])
 
-  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@index([entityType, entityId])
+}
+
+model Device {
+  id         String       @id @default(uuid())
+  userId     String
+  platform   String
+  pushToken  String?      @unique
+  deviceName String?
+  lastSeenAt DateTime     @default(now()) @db.Timestamptz
+  createdAt  DateTime     @default(now()) @db.Timestamptz
+  user       User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  attendance Attendance[]
+
+  @@index([userId])
 }
